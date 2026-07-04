@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Организационная структура</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: #6b7280;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        button.secondary:hover {
+            background: #d1d5db;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #111827;
+            color: #fff;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .name-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .toggle-btn:hover {
+            background: #e0e7ff;
+        }
+
+        .toggle-placeholder {
+            width: 24px;
+            flex-shrink: 0;
+        }
+
+        .level-badge {
+            display: inline-block;
+            min-width: 28px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status {
+            margin-top: 16px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Организационная структура</h1>
+    <p class="subtitle">Иерархия «начальник — подчинённый», данные загружаются через REST API</p>
+
+    <div class="toolbar">
+        <button type="button" id="expandAllBtn">Развернуть всё</button>
+        <button type="button" id="collapseAllBtn" class="secondary">Свернуть всё</button>
+        <button type="button" id="reloadBtn" class="secondary">Обновить</button>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+            <tr>
+                <th>Сотрудник</th>
+                <th>Должность</th>
+                <th>Отдел</th>
+                <th>Уровень</th>
+            </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+            <tr>
+                <td colspan="4">Загрузка данных...</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="status" id="statusText"></p>
+</div>
+
+<script th:src="@{/scripts/javascrip1.js}"></script>
+</body>
+</html>
