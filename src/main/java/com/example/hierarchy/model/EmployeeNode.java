@@ -17,7 +17,7 @@ public class EmployeeNode {
     private Long id;
     private String name;
     private String position;
-    private String department;
+    private Department department;
 
     @Builder.Default
     private List<EmployeeNode> subordinates = new ArrayList<>();

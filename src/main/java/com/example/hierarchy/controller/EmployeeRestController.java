@@ -1,5 +1,6 @@
 package com.example.hierarchy.controller;
 
+import com.example.hierarchy.model.Department;
 import com.example.hierarchy.model.EmployeeNode;
 import com.example.hierarchy.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
@@ -19,5 +20,10 @@ public class EmployeeRestController {
     @GetMapping("/tree")
     public List<EmployeeNode> getTree() {
         return employeeService.getOrganizationTree();
+    }
+
+    @GetMapping("/departments")
+    public List<Department> getDepartments() {
+        return employeeService.getDepartments();
     }
 }
