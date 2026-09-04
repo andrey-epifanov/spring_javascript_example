@@ -10,4 +10,9 @@ public class PageController {
     public String index() {
         return "index";
     }
+
+    @GetMapping("/risks")
+    public String risks() {
+        return "risks";
+    }
 }

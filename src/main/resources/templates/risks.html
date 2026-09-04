@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Риски проекта</title>
+    <link rel="stylesheet" th:href="@{/styles/main.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Риски проекта</h1>
+    <p class="subtitle">Перетащите строку за номер позиции, чтобы изменить приоритет риска</p>
+
+    <p class="page-nav">
+        <a th:href="@{/}">← Организационная структура</a>
+    </p>
+
+    <div class="card">
+        <table class="risk-table">
+            <thead>
+            <tr>
+                <th class="position-col">№</th>
+                <th>Риск</th>
+                <th>Описание</th>
+                <th>Категория</th>
+            </tr>
+            </thead>
+            <tbody id="riskTableBody">
+            <tr>
+                <td colspan="4">Загрузка данных...</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="status" id="riskStatusText"></p>
+</div>
+
+<script type="module" th:src="@{/scripts/risks.js}"></script>
+</body>
+</html>
