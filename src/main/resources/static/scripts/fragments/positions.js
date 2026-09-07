@@ -2,11 +2,11 @@ export function normalizePositionsInTab(tabEL) {
     const rows = Array.from(tabEL.querySelectorAll('.editable-row:not([data-template])'));
     if (rows.length === 0) return;
 
-    // Сортируем по исходному порядку
-    rows.sort((a, b) => {
-        const initA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
-        const initB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
-        return initA - initB;
+    // Сохраняем исходный порядок
+    rows.forEach((row, index) => {
+        if (!row.hasAttribute('data-initial-position')) {
+            row.setAttribute('data-initial-position', index + 1);
+        }
     });
 
     // ШАГ 1: Собираем все желаемые позиции
@@ -15,84 +15,63 @@ export function normalizePositionsInTab(tabEL) {
 
     rows.forEach((row) => {
         const posInput = row.querySelector('input[name="position"]');
-        if (!posInput) return;
+        if (!posInput) {
+            desiredPositions.set(row, parseInt(row.getAttribute('data-initial-position'), 10) || rows.indexOf(row) + 1);
+            return;
+        }
 
         let desiredPos = parseInt(posInput.value, 10);
 
-        // Если пользователь ничего не ввел или ввел мусор, берем индекс + 1
-        if (isNaN(desiredPos) || desiredPos <= 0) {
-            desiredPos = row._originalIndex || rows.indexOf(row) + 1;
+        // Валидация ввода
+        if (isNaN(desiredPos) || desiredPos < 1) {
+            desiredPos = parseInt(row.getAttribute('data-initial-position'), 10) || rows.indexOf(row) + 1;
         }
 
-        // Ограничиваем позицию максимальным значением
-        if (desiredPos > maxPosition) {
-            desiredPos = maxPosition;
-        }
+        // Ограничиваем позицию
+        desiredPos = Math.min(Math.max(desiredPos, 1), maxPosition);
 
         desiredPositions.set(row, desiredPos);
     });
 
-    // ШАГ 2: Проверяем конфликты и разрешаем их
+    // ШАГ 2: Разрешаем конфликты с помощью алгоритма "заполнения пробелов"
     const usedPositions = new Set();
-    const rowsByDesiredPos = new Map();
+    const finalPositions = new Map();
 
-    // Группируем строки по желаемым позициям
-    desiredPositions.forEach((pos, row) => {
-        if (!rowsByDesiredPos.has(pos)) {
-            rowsByDesiredPos.set(pos, []);
-        }
-        rowsByDesiredPos.get(pos).push(row);
+    // Сортируем строки по желаемой позиции, затем по исходной
+    const sortedRows = Array.from(rows).sort((a, b) => {
+        const posA = desiredPositions.get(a) || 9999;
+        const posB = desiredPositions.get(b) || 9999;
+        if (posA !== posB) return posA - posB;
+
+        const initA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
+        const initB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
+        return initA - initB;
     });
 
-    // ШАГ 3: Разрешаем конфликты сдвигом
-    const assignedPositions = new Map();
+    // Распределяем позиции
+    sortedRows.forEach((row) => {
+        const desiredPos = desiredPositions.get(row) || 1;
+        let assignedPos = desiredPos;
 
-    // Сортируем позиции по возрастанию
-    const sortedPositions = Array.from(rowsByDesiredPos.keys()).sort((a, b) => a - b);
+        // Ищем свободную позицию
+        while (usedPositions.has(assignedPos)) {
+            assignedPos++;
+        }
 
-    sortedPositions.forEach(pos => {
-        const rowsAtThisPos = rowsByDesiredPos.get(pos);
-
-        if (rowsAtThisPos.length === 1) {
-            // Если только одна строка на позиции, проверяем, свободна ли она
-            let assignedPos = pos;
+        // Если вышли за пределы, ищем свободную позицию сначала
+        if (assignedPos > maxPosition) {
+            assignedPos = 1;
             while (usedPositions.has(assignedPos)) {
                 assignedPos++;
             }
-            assignedPositions.set(rowsAtThisPos[0], assignedPos);
-            usedPositions.add(assignedPos);
-        } else {
-            // Если несколько строк на одной позиции
-            // Сортируем их по исходному порядку
-            rowsAtThisPos.sort((a, b) => {
-                const initA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
-                const initB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
-                return initA - initB;
-            });
-
-            // Первая строка получает желаемую позицию
-            let currentPos = pos;
-            rowsAtThisPos.forEach((row, index) => {
-                // Проверяем, что позиция свободна
-                while (usedPositions.has(currentPos)) {
-                    currentPos++;
-                }
-                // Если это не первая строка, и позиция совпадает с pos, двигаем дальше
-                if (index > 0 && currentPos === pos) {
-                    currentPos++;
-                    while (usedPositions.has(currentPos)) {
-                        currentPos++;
-                    }
-                }
-                assignedPositions.set(row, currentPos);
-                usedPositions.add(currentPos);
-                currentPos++;
-            });
         }
+
+        finalPositions.set(row, assignedPos);
+        usedPositions.add(assignedPos);
     });
 
-    // ШАГ 4: Применяем новые позиции
-    assignedPositions.forEach((newPos, row) => {
+    // ШАГ 3: Применяем позиции
+    finalPositions.forEach((newPos, row) => {
         const posInput = row.querySelector('input[name="position"]');
         if (posInput) {
             posInput.value = newPos;
@@ -100,27 +79,29 @@ export function normalizePositionsInTab(tabEL) {
         row.setAttribute('data-initial-position', newPos);
     });
 
-    // Дополнительно: обновляем data-initial-position для всех строк в правильном порядке
-    const allRows = tabEL.querySelectorAll('.editable-row:not([data-template])');
-    const sortedRows = Array.from(allRows).sort((a, b) => {
+    // ШАГ 4: Дополнительная нормализация (убираем разрывы)
+    const sortedByPosition = Array.from(rows).sort((a, b) => {
         const posA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
         const posB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
         return posA - posB;
     });
 
-    sortedRows.forEach((row, index) => {
-        const posInput = row.querySelector('input[name="position"]');
-        if (posInput) {
-            // Исправляем возможные разрывы в позициях
-            const currentPos = parseInt(posInput.value, 10);
-            // Проверяем, что позиция соответствует порядку
-            if (currentPos !== index + 1) {
-                // Если есть разрывы, переназначаем
-                posInput.value = index + 1;
-                row.setAttribute('data-initial-position', index + 1);
+    sortedByPosition.forEach((row, index) => {
+        const newPos = index + 1;
+        const currentPos = parseInt(row.getAttribute('data-initial-position'), 10);
+
+        if (currentPos !== newPos) {
+            const posInput = row.querySelector('input[name="position"]');
+            if (posInput) {
+                posInput.value = newPos;
             }
+            row.setAttribute('data-initial-position', newPos);
         }
     });
 
-    console.log('Позиции нормализованы (с сохранением предпочтений пользователя)');
+    console.log('✅ Позиции нормализованы');
+    return Array.from(rows).map(row => ({
+        element: row,
+        position: parseInt(row.getAttribute('data-initial-position'), 10)
+    }));
 }
