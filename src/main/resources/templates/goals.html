@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цели</title>
+    <link rel="stylesheet" th:href="@{/styles/main.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Цели</h1>
+    <p class="subtitle">Двухуровневые номера (1, 1.1, 1.2…), сортировка по клику на заголовок №</p>
+
+    <p class="page-nav">
+        <a th:href="@{/}">← Организационная структура</a>
+        <span> · </span>
+        <a th:href="@{/risks}">Риски проекта →</a>
+        <span> · </span>
+        <a th:href="@{/goals/edit}">Редактирование Целей →</a>
+    </p>
+
+    <div class="card">
+        <table class="goal-table">
+            <thead>
+            <tr>
+                <th class="position-col sortable" id="positionHeader" data-type="table" data-sort="position" data-tbody="goal-body"
+                    title="Двухуровневая сортировка: клик переключает 4 режима">
+                    № <span class="sort-arrow"></span>
+                </th>
+                <th>Измерено</th>
+                <th>Текущее</th>
+                <th class="sortable" data-type="table" data-sort="responsible" data-tbody="goal-body">Ответственный</th>
+                <th class="sortable" data-type="table" data-sort="status" data-tbody="goal-body">Статус</th>
+            </tr>
+            </thead>
+            <tbody id="goal-body">
+            <tr th:each="goal : ${goals}">
+                <td th:text="${goal.position}"></td>
+                <td th:text="${goal.measured}"></td>
+                <td th:text="${goal.currentValue}"></td>
+                <td th:text="${goal.responsible}"></td>
+                <td th:text="${goal.status}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module" th:src="@{/scripts/goals.js}"></script>
+</body>
+</html>

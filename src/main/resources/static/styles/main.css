@@ -247,6 +247,43 @@ th.sortable[data-sort-mode="major-desc-minor-desc"] .sort-indicator {
     color: #fbbf24;
 }
 
+/* Цели */
+.goal-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.goal-table th.sortable:hover {
+    background: #1f2937;
+}
+
+.sort-arrow {
+    margin-left: 6px;
+    font-size: 11px;
+    color: #93c5fd;
+}
+
+.goal-table .position-input,
+.goal-table .goal-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.goal-table .position-input {
+    width: 72px;
+}
+
+.goal-table .position-input:focus,
+.goal-table .goal-input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 .edited-row {
     background: #fefce8;
 }

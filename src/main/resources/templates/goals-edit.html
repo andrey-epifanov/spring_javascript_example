@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование Целей</title>
+    <link rel="stylesheet" th:href="@{/styles/main.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Редактирование Целей</h1>
+    <p class="subtitle">Номер — два уровня через точку (1, 1.1, 1.2…). Сортировка по клику на заголовок №.</p>
+
+    <p class="page-nav">
+        <a th:href="@{/goals}">← Цели</a>
+        <span> · </span>
+        <a th:href="@{/}">Организационная структура</a>
+    </p>
+
+    <div class="card">
+        <table class="goal-table">
+            <thead>
+            <tr>
+                <th class="position-col sortable" id="positionHeader" data-type="table" data-sort="position" data-tbody="goal-body"
+                    title="Двухуровневая сортировка: клик переключает 4 режима">
+                    № <span class="sort-arrow"></span>
+                </th>
+                <th>Измерено</th>
+                <th>Текущее</th>
+                <th>Ответственный</th>
+                <th>Статус</th>
+            </tr>
+            </thead>
+            <tbody id="goal-body">
+            <tr th:each="goal : ${goals}" data-position="${goal.position}">
+                <td><input type="text" name="position" value="${goal.position}" class="position-input"></td>
+                <td><input type="text" name="measured" value="${goal.measured}" class="goal-input"></td>
+                <td><input type="text" name="currentValue" value="${goal.currentValue}" class="goal-input"></td>
+                <td><input type="text" name="responsible" value="${goal.responsible}" class="goal-input"></td>
+                <td><input type="text" name="status" value="${goal.status}" class="goal-input"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="status" id="goalStatusText"></p>
+</div>
+
+<script type="module" th:src="@{/scripts/goals-edit.js}"></script>
+</body>
+</html>
