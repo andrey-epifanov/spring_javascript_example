@@ -15,4 +15,9 @@ public class PageController {
     public String risks() {
         return "risks";
     }
+
+    @GetMapping("/tanks")
+    public String tanks() {
+        return "tanks";
+    }
 }

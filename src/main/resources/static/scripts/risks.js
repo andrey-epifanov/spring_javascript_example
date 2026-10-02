@@ -1,12 +1,118 @@
 import { escapeHtml } from './html-utils.js';
+import { normalizePositionsInTab, renumberTwoLevel } from './fragments/positions.js';
+import { SORT_MODES, sortByPosition, nextSortMode, getSortArrows } from './sorting_utils.js';
 
 const API_URL = '/api/risks';
 const REORDER_URL = '/api/risks/reorder';
 const tableBody = document.getElementById('riskTableBody');
 const statusText = document.getElementById('riskStatusText');
+const editModeBtn = document.getElementById('editModeBtn');
+const saveBtn = document.getElementById('saveBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const editToolbar = document.getElementById('editToolbar');
+const positionHeader = document.getElementById('positionHeader');
+const sortIndicator = document.getElementById('sortIndicator');
 
 let risks = [];
 let draggedRiskId = null;
+let editMode = false;
+let sortMode = SORT_MODES[0];
+
+// --- Управление режимом редактирования ---
+
+function sortedRisks() {
+    return sortByPosition(risks, sortMode);
+}
+
+function updateSortIndicator() {
+    if (!sortIndicator) return;
+    const arrows = getSortArrows(sortMode);
+    sortIndicator.textContent = (arrows.major + arrows.minor);
+    positionHeader?.setAttribute('data-sort-mode', sortMode);
+}
+
+function handleSortClick() {
+    sortMode = nextSortMode(sortMode);
+    updateSortIndicator();
+    renderRiskTable();
+    statusText.textContent = 'Сортировка: ' + sortMode.replaceAll('-', ' ');
+}
+
+function setEditMode(enabled) {
+    editMode = enabled;
+    document.body.classList.toggle('edit-in-progress', enabled);
+    editToolbar.classList.toggle('hidden', !enabled);
+    editModeBtn.classList.toggle('hidden', enabled);
+    renderRiskTable();
+}
+
+function collectForReorder() {
+    // Возвращает [{id, position}] в текущем DOM-порядке (после перенумерации)
+    const rows = Array.from(tableBody.querySelectorAll('.editable-row:not([data-template])'));
+    return rows.map(row => ({
+        id: Number(row.dataset.id),
+        position: row.querySelector('input[name="position"]')?.value?.trim() || ''
+    }));
+}
+
+function collectEdits() {
+    const rows = Array.from(tableBody.querySelectorAll('.editable-row:not([data-template])'));
+    return rows.map(row => ({
+        id: Number(row.dataset.id),
+        position: row.querySelector('input[name="position"]')?.value?.trim() || '',
+        title: row.querySelector('input[name="title"]')?.value?.trim() || ''
+    }));
+}
+
+async function saveEdits() {
+    saveBtn.disabled = true;
+    try {
+        // 1. Нормализуем позиции по 2-уровневому алгоритму
+        normalizePositionsInTab(tableBody);
+
+        // 2. Сохраняем позиции (reorder с двухуровневыми номерами)
+        const reorderResponse = await fetch(REORDER_URL, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(collectForReorder())
+        });
+        if (!reorderResponse.ok) {
+            throw new Error('Ошибка сохранения позиций (HTTP ' + reorderResponse.status + ')');
+        }
+
+        // 3. Сохраняем названия (позиции уже сохранены шагом 2)
+        const edits = collectEdits();
+        for (const edit of edits) {
+            const response = await fetch(API_URL + '/' + edit.id, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title: edit.title})
+            });
+            if (!response.ok) {
+                throw new Error('Ошибка сохранения риска ' + edit.id);
+            }
+        }
+
+        // 4. Перезагружаем список
+        await loadRisks();
+        setEditMode(false);
+        statusText.textContent = 'Изменения сохранены';
+        statusText.classList.remove('error');
+    } catch (error) {
+        statusText.textContent = 'Ошибка: ' + error.message;
+        statusText.classList.add('error');
+    } finally {
+        saveBtn.disabled = false;
+    }
+}
+
+async function cancelEdits() {
+    setEditMode(false);
+    await loadRisks();
+    statusText.textContent = 'Изменения отменены';
+}
+
+// --- Загрузка и рендер ---
 
 async function loadRisks() {
     statusText.textContent = 'Загрузка...';
@@ -29,22 +135,51 @@ async function loadRisks() {
     }
 }
 
+function riskRowTemplate(risk) {
+    if (editMode) {
+        return `
+        <tr data-id="${risk.id}" class="editable-row">
+            <td class="position-cell">
+                <input type="text" name="position" value="${escapeHtml(risk.position)}" class="position-input">
+            </td>
+            <td>
+                <input type="text" name="title" value="${escapeHtml(risk.title)}" class="title-input">
+            </td>
+            <td>${escapeHtml(risk.description)}</td>
+            <td><span class="category-badge">${escapeHtml(risk.category)}</span></td>
+        </tr>
+        `;
+    }
+
+    return `
+        <tr data-id="${risk.id}" class="risk-row">
+            <td class="position-cell" draggable="true" title="Перетащите для изменения порядка">
+                <span class="position-handle">${escapeHtml(risk.position)}</span>
+            </td>
+            <td>${escapeHtml(risk.title)}</td>
+            <td>${escapeHtml(risk.description)}</td>
+            <td><span class="category-badge">${escapeHtml(risk.category)}</span></td>
+        </tr>
+    `;
+}
+
 function renderRiskTable() {
     if (risks.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4">Нет данных</td></tr>';
         return;
     }
 
-    tableBody.innerHTML = risks.map(risk => `
-        <tr data-id="${risk.id}" class="risk-row">
-            <td class="position-cell" draggable="true" title="Перетащите для изменения порядка">
-                <span class="position-handle">${risk.position}</span>
-            </td>
-            <td>${escapeHtml(risk.title)}</td>
-            <td>${escapeHtml(risk.description)}</td>
-            <td><span class="category-badge">${escapeHtml(risk.category)}</span></td>
-        </tr>
-    `).join('');
+    tableBody.innerHTML = sortedRisks().map(riskRowTemplate).join('');
+
+    if (editMode) {
+        tableBody.querySelectorAll('.editable-row').forEach(row => {
+            const posInput = row.querySelector('input[name="position"]');
+            const titleInput = row.querySelector('input[name="title"]');
+            posInput?.addEventListener('input', () => highlightPositionRow(row));
+            titleInput?.addEventListener('input', () => highlightPositionRow(row));
+        });
+        return;
+    }
 
     tableBody.querySelectorAll('.position-cell').forEach(cell => {
         cell.addEventListener('dragstart', handleDragStart);
@@ -56,6 +191,12 @@ function renderRiskTable() {
         row.addEventListener('drop', handleDrop);
     });
 }
+
+function highlightPositionRow(row) {
+    row.classList.add('edited-row');
+}
+
+// --- Drag-and-drop ---
 
 function handleDragStart(event) {
     const row = event.target.closest('.risk-row');
@@ -103,15 +244,17 @@ async function handleDrop(event) {
 
     const [movedRisk] = risks.splice(draggedIndex, 1);
     risks.splice(targetIndex, 0, movedRisk);
-    risks = risks.map((risk, index) => ({...risk, position: index + 1}));
 
+    // Пересчитываем двухуровневые позиции по новому порядку (1, 1.1, 1.2, 2, ...)
+    risks = renumberTwoLevel(risks);
     renderRiskTable();
 
     try {
+        const payload = risks.map(risk => ({id: risk.id, position: risk.position}));
         const response = await fetch(REORDER_URL, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(risks.map(risk => risk.id))
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -129,4 +272,18 @@ async function handleDrop(event) {
     }
 }
 
+// --- Инициализация ---
+
+const refreshBtn = document.getElementById('refreshBtn');
+
+editModeBtn.addEventListener('click', () => setEditMode(true));
+saveBtn.addEventListener('click', saveEdits);
+cancelBtn.addEventListener('click', cancelEdits);
+refreshBtn?.addEventListener('click', () => {
+    setEditMode(false);
+    loadRisks();
+});
+positionHeader?.addEventListener('click', handleSortClick);
+
+updateSortIndicator();
 loadRisks();

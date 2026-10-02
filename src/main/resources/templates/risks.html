@@ -13,13 +13,25 @@
 
     <p class="page-nav">
         <a th:href="@{/}">← Организационная структура</a>
+        <span> · </span>
+        <a th:href="@{/tanks}">Танчики →</a>
     </p>
+
+    <div class="toolbar">
+        <button type="button" id="editModeBtn">Редактировать</button>
+        <div class="edit-toolbar hidden" id="editToolbar">
+            <button type="button" id="saveBtn">Сохранить</button>
+            <button type="button" id="cancelBtn" class="secondary">Отмена</button>
+            <span class="edit-hint">Номера (например 1, 1.1, 1.2) — два уровня через точку</span>
+        </div>
+        <button type="button" id="refreshBtn" class="secondary">Обновить</button>
+    </div>
 
     <div class="card">
         <table class="risk-table">
             <thead>
             <tr>
-                <th class="position-col">№</th>
+                <th class="position-col sortable" id="positionHeader" title="Двухуровневая сортировка: клик переключает 4 режима">№ <span id="sortIndicator" class="sort-indicator"></span></th>
                 <th>Риск</th>
                 <th>Описание</th>
                 <th>Категория</th>

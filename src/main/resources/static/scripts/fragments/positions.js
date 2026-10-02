@@ -1,107 +1,108 @@
+// Двухуровневые позиции: "1" (основной пункт) и "1.1" (подпункт).
+// "1.10" — это НЕ "1.1": первая часть — основной номер, вторая — номер подпункта.
+// Сравниваем части как числа, а не как дробь: 1.9 < 1.10 < 1.11.
+
+export function parsePosition(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return [0, 0];
+    const parts = text.split('.');
+    const major = parseInt(parts[0], 10);
+    const minor = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    if (!Number.isFinite(major) || !Number.isFinite(minor) || major < 1 || minor < 0) {
+        return [0, 0];
+    }
+    return [major, minor];
+}
+
+// Двухуровневое сравнение: 1 < 1.1 < 1.2 < 1.10 < 2
+export function comparePositions(a, b) {
+    const [aMaj, aMin] = parsePosition(a);
+    const [bMaj, bMin] = parsePosition(b);
+    if (aMaj !== bMaj) return aMaj - bMaj;
+    return aMin - bMin;
+}
+
+// Пересчёт по УЖЕ ЗАДАННОМУ порядку (drag-and-drop):
+// мажоры (без точки) нумеруются подряд 1, 2, 3... в порядке появления;
+// подпункт (X.Y) принадлежит ПОСЛЕДНЕМУ мажору перед ним и нумеруется подряд внутри него:
+// [1, 1.1, 1.2, 2, 2.1, 1.1-перенесённый] → [1, 1.1, 1.2, 2, 2.1, 2.2]
+export function renumberTwoLevel(entries) {
+    let majorCounter = 0;
+    let lastMajor = 0;
+    let minorCounter = 0;
+
+    return entries.map((entry) => {
+        const [, minor] = parsePosition(entry.position);
+        let label;
+
+        if (minor === 0) {
+            majorCounter++;
+            lastMajor = majorCounter;
+            minorCounter = 0;
+            label = String(majorCounter);
+        } else {
+            if (lastMajor === 0) {
+                majorCounter++;
+                lastMajor = majorCounter;
+                minorCounter = 0;
+            }
+            minorCounter++;
+            label = lastMajor + '.' + minorCounter;
+        }
+
+        return {...entry, position: label};
+    });
+}
+
+// Пересчёт по ЖЕЛАЕМЫМ значениям (ввод в полях):
+// сортируем по двухуровневой позиции и перенумеровываем.
+export function renumberPositions(entries) {
+    const sorted = entries
+        .map((entry, index) => ({entry, index}))
+        .sort((a, b) => {
+            const cmp = comparePositions(a.entry.position, b.entry.position);
+            return cmp !== 0 ? cmp : a.index - b.index;
+        })
+        .map(item => item.entry);
+
+    return renumberTwoLevel(sorted);
+}
+
+// Нормализация позиций в таблице редактирования.
+// Читает input[name="position"], сортирует, перенумеровывает с учётом 2 уровней
+// и записывает результат обратно в inputs и data-initial-position.
+// Возвращает массив {element, position} в новом порядке.
 export function normalizePositionsInTab(tabEL) {
     const rows = Array.from(tabEL.querySelectorAll('.editable-row:not([data-template])'));
-    if (rows.length === 0) return;
+    if (rows.length === 0) return [];
 
-    // Сохраняем исходный порядок
     rows.forEach((row, index) => {
         if (!row.hasAttribute('data-initial-position')) {
-            row.setAttribute('data-initial-position', index + 1);
+            row.setAttribute('data-initial-position', String(index + 1));
         }
     });
 
-    // ШАГ 1: Собираем все желаемые позиции
-    const desiredPositions = new Map();
-    const maxPosition = rows.length;
-
-    rows.forEach((row) => {
+    const entries = rows.map(row => {
         const posInput = row.querySelector('input[name="position"]');
-        if (!posInput) {
-            desiredPositions.set(row, parseInt(row.getAttribute('data-initial-position'), 10) || rows.indexOf(row) + 1);
-            return;
-        }
-
-        let desiredPos = parseInt(posInput.value, 10);
-
-        // Валидация ввода
-        if (isNaN(desiredPos) || desiredPos < 1) {
-            desiredPos = parseInt(row.getAttribute('data-initial-position'), 10) || rows.indexOf(row) + 1;
-        }
-
-        // Ограничиваем позицию
-        desiredPos = Math.min(Math.max(desiredPos, 1), maxPosition);
-
-        desiredPositions.set(row, desiredPos);
+        const raw = posInput?.value?.trim() || '';
+        const position = parsePosition(raw)[0] > 0
+            ? raw
+            : row.getAttribute('data-initial-position');
+        return {row, position};
     });
 
-    // ШАГ 2: Разрешаем конфликты с помощью алгоритма "заполнения пробелов"
-    const usedPositions = new Set();
-    const finalPositions = new Map();
+    const renumbered = renumberPositions(entries);
 
-    // Сортируем строки по желаемой позиции, затем по исходной
-    const sortedRows = Array.from(rows).sort((a, b) => {
-        const posA = desiredPositions.get(a) || 9999;
-        const posB = desiredPositions.get(b) || 9999;
-        if (posA !== posB) return posA - posB;
-
-        const initA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
-        const initB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
-        return initA - initB;
-    });
-
-    // Распределяем позиции
-    sortedRows.forEach((row) => {
-        const desiredPos = desiredPositions.get(row) || 1;
-        let assignedPos = desiredPos;
-
-        // Ищем свободную позицию
-        while (usedPositions.has(assignedPos)) {
-            assignedPos++;
-        }
-
-        // Если вышли за пределы, ищем свободную позицию сначала
-        if (assignedPos > maxPosition) {
-            assignedPos = 1;
-            while (usedPositions.has(assignedPos)) {
-                assignedPos++;
-            }
-        }
-
-        finalPositions.set(row, assignedPos);
-        usedPositions.add(assignedPos);
-    });
-
-    // ШАГ 3: Применяем позиции
-    finalPositions.forEach((newPos, row) => {
-        const posInput = row.querySelector('input[name="position"]');
+    renumbered.forEach((item) => {
+        item.row.setAttribute('data-initial-position', item.position);
+        const posInput = item.row.querySelector('input[name="position"]');
         if (posInput) {
-            posInput.value = newPos;
-        }
-        row.setAttribute('data-initial-position', newPos);
-    });
-
-    // ШАГ 4: Дополнительная нормализация (убираем разрывы)
-    const sortedByPosition = Array.from(rows).sort((a, b) => {
-        const posA = parseInt(a.getAttribute('data-initial-position'), 10) || 9999;
-        const posB = parseInt(b.getAttribute('data-initial-position'), 10) || 9999;
-        return posA - posB;
-    });
-
-    sortedByPosition.forEach((row, index) => {
-        const newPos = index + 1;
-        const currentPos = parseInt(row.getAttribute('data-initial-position'), 10);
-
-        if (currentPos !== newPos) {
-            const posInput = row.querySelector('input[name="position"]');
-            if (posInput) {
-                posInput.value = newPos;
-            }
-            row.setAttribute('data-initial-position', newPos);
+            posInput.value = item.position;
         }
     });
 
-    console.log('✅ Позиции нормализованы');
-    return Array.from(rows).map(row => ({
-        element: row,
-        position: parseInt(row.getAttribute('data-initial-position'), 10)
+    return renumbered.map(item => ({
+        element: item.row,
+        position: item.position
     }));
 }

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class ProjectRisk {
 
     private Long id;
-    private int position;
+    private String position;
     private String title;
     private String description;
     private String category;
