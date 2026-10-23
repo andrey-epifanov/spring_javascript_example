@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Танчики</title>
+    <link rel="stylesheet" th:href="@{/styles/main.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Танчики</h1>
+    <p class="subtitle">Стрелки или WASD — движение, пробел — выстрел. Уничтожайте вражеские танки и ломайте кирпичи!</p>
+
+    <p class="page-nav">
+        <a th:href="@{/}">← Организационная структура</a>
+        <span> · </span>
+        <a th:href="@{/risks}">Риски проекта →</a>
+    </p>
+
+    <div class="tank-hud">
+        <span>Счёт: <strong id="scoreText">0</strong></span>
+        <span>Жизни: <strong id="livesText">3</strong></span>
+        <span>Противники: <strong id="enemiesText">0</strong></span>
+    </div>
+
+    <div class="tank-arena-wrap">
+        <canvas id="tankCanvas" width="960" height="600"></canvas>
+        <div class="tank-overlay hidden" id="gameOverlay">
+            <h2 id="overlayTitle">Игра окончена</h2>
+            <p id="overlayText"></p>
+            <button type="button" id="restartBtn">Играть снова</button>
+        </div>
+    </div>
+
+    <p class="status" id="tankStatusText"></p>
+</div>
+
+<script type="module" th:src="@{/scripts/tanks.js}"></script>
+</body>
+</html>
