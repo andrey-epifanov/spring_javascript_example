@@ -17,6 +17,12 @@
         <a th:href="@{/}">Организационная структура</a>
     </p>
 
+    <div class="toolbar">
+        <button type="button" id="addGoalBtn">Добавить</button>
+        <button type="button" id="saveGoalsBtn" class="secondary">Сохранить все</button>
+        <span id="goalStatusText" class="status"></span>
+    </div>
+
     <div class="card">
         <table class="goal-table">
             <thead>
@@ -33,19 +39,27 @@
             </thead>
             <tbody id="goal-body">
             <tr th:each="goal : ${goals}" data-position="${goal.position}">
-                <td><input type="text" name="position" value="${goal.position}" class="position-input"></td>
-                <td><input type="text" name="measured" value="${goal.measured}" class="goal-input"></td>
-                <td><input type="text" name="currentValue" value="${goal.currentValue}" class="goal-input"></td>
-                <td><input type="text" name="responsible" value="${goal.responsible}" class="goal-input"></td>
-                <td><input type="text" name="status" value="${goal.status}" class="goal-input"></td>
+                <td><input type="text" name="position" th:value="${goal.position}" class="position-input"></td>
+                <td><input type="text" name="measured" th:value="${goal.measured}" class="goal-input"></td>
+                <td><input type="text" name="currentValue" th:value="${goal.currentValue}" class="goal-input"></td>
+                <td><input type="text" name="responsible" th:value="${goal.responsible}" class="goal-input"></td>
+                <td>
+                    <select name="status" class="goal-input">
+                        <option th:each="status : ${goalStatuses}" th:value="${status}" th:text="${status}"
+                                th:selected="${status == goal.status}">status</option>
+                    </select>
+                </td>
             </tr>
             </tbody>
         </table>
     </div>
-
-    <p class="status" id="goalStatusText"></p>
 </div>
 
+<script th:inline="javascript">
+    // Статусы целей с бэкенда (EnumHelpController → @ModelAttribute goalStatuses).
+    // Объявляем до module-скрипта, чтобы goals-edit.js гарантированно их увидел.
+    window.__GOAL_STATUSES__ = /*[[${goalStatuses}]]*/ ['В работе', 'Выполнено', 'На паузе', 'Просрочено'];
+</script>
 <script type="module" th:src="@{/scripts/goals-edit.js}"></script>
 </body>
 </html>

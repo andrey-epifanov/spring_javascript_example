@@ -284,6 +284,25 @@ th.sortable[data-sort-mode="major-desc-minor-desc"] .sort-indicator {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.button-link {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.button-link button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.button-link button:hover {
+    background: #1d4ed8;
+}
+
 .edited-row {
     background: #fefce8;
 }

@@ -15,9 +15,13 @@
         <a th:href="@{/}">← Организационная структура</a>
         <span> · </span>
         <a th:href="@{/risks}">Риски проекта →</a>
-        <span> · </span>
-        <a th:href="@{/goals/edit}">Редактирование Целей →</a>
     </p>
+
+    <div class="toolbar">
+        <a th:href="@{/goals/edit}" class="button-link">
+            <button type="button">Редактирование</button>
+        </a>
+    </div>
 
     <div class="card">
         <table class="goal-table">
